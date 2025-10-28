@@ -16,7 +16,7 @@ var (
 
 // Init Neo4j connection
 func InitNeo4j() {
-	uri := getEnv("NEO4J_URI", "bolt://neo4j:7687")
+	uri := getEnv("NEO4J_URI", "bolt://127.0.0.1:7687")
 	user := getEnv("NEO4J_USER", "neo4j")
 	pass := getEnv("NEO4J_PASSWORD", "password123")
 

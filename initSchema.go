@@ -6,26 +6,55 @@ import (
 	"log"
 	"os"
 
-	"project/cassandra"
+	"github.com/gocql/gocql"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
 //
 // ===============================================
-//   🧱  BAGIAN 1 — SCHEMA CASSANDRA
+//   🧱 BAGIAN 1 — SCHEMA CASSANDRA
 // ===============================================
 func createCassandraSchema() {
+	host := getEnv("CASSANDRA_HOST", "127.0.0.1")
+	port := getEnvInt("CASSANDRA_PORT", 9042)
+
 	fmt.Println("📦 Creating Cassandra keyspace and tables (denormalized model)...")
 
+	// 1️⃣ Koneksi sementara tanpa keyspace
+	tempCluster := gocql.NewCluster(host)
+	tempCluster.Port = port
+	tempCluster.Consistency = gocql.Quorum
+
+	tempSession, err := tempCluster.CreateSession()
+	if err != nil {
+		log.Fatalf("❌ Cassandra initial connection failed: %v", err)
+	}
+	defer tempSession.Close()
+
+	// 2️⃣ Buat keyspace jika belum ada
+	err = tempSession.Query(`
+		CREATE KEYSPACE IF NOT EXISTS rumahsakit
+		WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+	`).Exec()
+	if err != nil {
+		log.Fatalf("❌ Failed to create keyspace rumahsakit: %v", err)
+	}
+	fmt.Println("🧱 Keyspace 'rumahsakit' ready.")
+
+	// 3️⃣ Koneksi ulang ke keyspace rumahsakit
+	cluster := gocql.NewCluster(host)
+	cluster.Port = port
+	cluster.Keyspace = "rumahsakit"
+	cluster.Consistency = gocql.Quorum
+
+	session, err := cluster.CreateSession()
+	if err != nil {
+		log.Fatalf("❌ Cassandra connection to keyspace failed: %v", err)
+	}
+	defer session.Close()
+
+	// 4️⃣ Buat tabel-tabel
 	queries := []string{
-		// Create keyspace
-		`CREATE KEYSPACE IF NOT EXISTS rumahsakit
-		 WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};`,
-
-		// Switch keyspace
-		`USE rumahsakit;`,
-
-		// 1️⃣ LOG AKTIVITAS (pakai clustering untuk waktu_aktivitas)
 		`CREATE TABLE IF NOT EXISTS log_aktivitas (
 			id_perangkat TEXT,
 			waktu_aktivitas TIMESTAMP,
@@ -33,7 +62,6 @@ func createCassandraSchema() {
 			PRIMARY KEY ((id_perangkat), waktu_aktivitas)
 		) WITH CLUSTERING ORDER BY (waktu_aktivitas DESC);`,
 
-		// 2️⃣ PEMESANAN OBAT
 		`CREATE TABLE IF NOT EXISTS pemesanan_obat (
 			id_pesanan TEXT PRIMARY KEY,
 			email_pemesan TEXT,
@@ -41,13 +69,11 @@ func createCassandraSchema() {
 			status_pemesanan TEXT
 		);`,
 
-		// 3️⃣ DETAIL PEMESANAN OBAT (pakai MAP untuk daftar obat)
 		`CREATE TABLE IF NOT EXISTS detail_pesanan_obat (
 			id_pesanan TEXT PRIMARY KEY,
 			daftar_obat MAP<TEXT, INT>
 		);`,
 
-		// 4️⃣ MASTER OBAT
 		`CREATE TABLE IF NOT EXISTS obat (
 			id_obat TEXT PRIMARY KEY,
 			nama TEXT,
@@ -56,7 +82,6 @@ func createCassandraSchema() {
 			stok INT
 		);`,
 
-		// 5️⃣ PEMESANAN LAYANAN MEDIS
 		`CREATE TABLE IF NOT EXISTS pemesanan_layanan (
 			id_pesanan TEXT PRIMARY KEY,
 			email_pemesan TEXT,
@@ -65,7 +90,6 @@ func createCassandraSchema() {
 			status_pemesanan TEXT
 		);`,
 
-		// 6️⃣ PELAKSANAAN LAYANAN MEDIS
 		`CREATE TABLE IF NOT EXISTS lokasi_layanan (
 			id_rs TEXT,
 			id_layanan TEXT,
@@ -76,8 +100,7 @@ func createCassandraSchema() {
 	}
 
 	for _, q := range queries {
-		err := cassandra.ExecCassandra(q)
-		if err != nil {
+		if err := session.Query(q).Exec(); err != nil {
 			log.Println("❌ Error executing query:", err)
 		}
 	}
@@ -87,12 +110,12 @@ func createCassandraSchema() {
 
 //
 // ===============================================
-//   🕸️  BAGIAN 2 — SCHEMA NEO4J
+//   🕸️ BAGIAN 2 — SCHEMA NEO4J
 // ===============================================
 func createNeo4jSchema() {
 	fmt.Println("🧱 Creating Neo4j constraints and relationships...")
 
-	uri := getEnv("NEO4J_URI", "bolt://neo4j:7687")
+	uri := getEnv("NEO4J_URI", "bolt://localhost:7687") // ⬅️ ganti dari 'neo4j' ke 'localhost'
 	user := getEnv("NEO4J_USER", "neo4j")
 	pass := getEnv("NEO4J_PASSWORD", "password123")
 
@@ -106,11 +129,10 @@ func createNeo4jSchema() {
 	defer session.Close(context.Background())
 
 	queries := []string{
-		// Unique constraints
 		"CREATE CONSTRAINT IF NOT EXISTS FOR (p:Pasien) REQUIRE p.email IS UNIQUE;",
 		"CREATE CONSTRAINT IF NOT EXISTS FOR (t:TenagaMedis) REQUIRE t.email IS UNIQUE;",
 		"CREATE CONSTRAINT IF NOT EXISTS FOR (r:RumahSakit) REQUIRE r.id_rs IS UNIQUE;",
-		"CREATE CONSTRAINT IF NOT EXISTS FOR (d:Departemen) REQUIRE d.nama_departemen IS NOT NULL;",
+		"CREATE CONSTRAINT IF NOT EXISTS FOR (d:Departemen) REQUIRE d.nama_departemen IS UNIQUE;",
 		"CREATE CONSTRAINT IF NOT EXISTS FOR (l:LayananMedis) REQUIRE l.id_layanan IS UNIQUE;",
 		"CREATE CONSTRAINT IF NOT EXISTS FOR (b:Baymin) REQUIRE b.id_perangkat IS UNIQUE;",
 		"CREATE CONSTRAINT IF NOT EXISTS FOR (j:JanjiTemu) REQUIRE j.id_janji_temu IS UNIQUE;",
@@ -134,15 +156,10 @@ func createNeo4jSchema() {
 
 //
 // ===============================================
-//   ⚙️  MAIN FUNCTION
+//   ⚙️ MAIN FUNCTION
 // ===============================================
 func main() {
-	// --- Cassandra ---
-	cassandra.InitCassandra()
-	defer cassandra.Session.Close()
 	createCassandraSchema()
-
-	// --- Neo4j ---
 	createNeo4jSchema()
 }
 
@@ -153,6 +170,15 @@ func main() {
 func getEnv(key, def string) string {
 	if val, ok := os.LookupEnv(key); ok {
 		return val
+	}
+	return def
+}
+
+func getEnvInt(key string, def int) int {
+	if val, ok := os.LookupEnv(key); ok {
+		var i int
+		fmt.Sscanf(val, "%d", &i)
+		return i
 	}
 	return def
 }

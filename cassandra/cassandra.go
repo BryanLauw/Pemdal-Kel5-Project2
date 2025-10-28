@@ -3,7 +3,7 @@ package cassandra
 import (
 	"fmt"
 	"log"
-
+	"syscall"
 	"github.com/gocql/gocql"
 )
 
@@ -11,7 +11,7 @@ var Session *gocql.Session
 
 // Init Cassandra connection
 func InitCassandra() {
-	cluster := gocql.NewCluster(getEnv("CASSANDRA_HOST", "cassandra"))
+	cluster := gocql.NewCluster(getEnv("CASSANDRA_HOST", "127.0.0.1"))
 	cluster.Port = getEnvInt("CASSANDRA_PORT", 9042)
 	cluster.Keyspace = "rumahsakit"
 	cluster.Consistency = gocql.Quorum

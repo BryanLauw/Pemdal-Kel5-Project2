@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"project/cassandra"
-	"project/neo4j"
+	"src/cassandra"
+	"src/neo4j"
 
-	"github.com/bxcodec/faker/v3"
+	faker "github.com/go-faker/faker/v4"
 )
 
 // ===============================================
@@ -26,6 +26,25 @@ const (
 	NumObat        = 1000
 )
 
+func randomProvince() string {
+	provinces := []string{
+		"Jawa Barat", "Jawa Tengah", "Jawa Timur",
+		"DKI Jakarta", "Banten", "Sumatera Utara",
+		"Sumatera Barat", "Kalimantan Timur", "Sulawesi Selatan",
+	}
+	return provinces[rand.Intn(len(provinces))]
+}
+
+func randomCity() string {
+	cities := []string{
+		"Bandung", "Semarang", "Surabaya",
+		"Jakarta", "Serang", "Medan",
+		"Padang", "Balikpapan", "Makassar",
+	}
+	return cities[rand.Intn(len(cities))]
+}
+
+
 // ===============================================
 //   📦 DATA GENERATION
 // ===============================================
@@ -38,10 +57,10 @@ func generatePasienData() []map[string]interface{} {
 			"kata_sandi":    "pass123",
 			"nama_lengkap":  faker.Name(),
 			"tanggal_lahir": faker.Date(),
-			"nomor_telepon": faker.Phonenumber(),
-			"provinsi":      faker.State(),
-			"kota":          faker.City(),
-			"jalan":         faker.Address(),
+			"nomor_telepon": fmt.Sprintf("08%d", rand.Intn(900000000)+100000000),
+			"provinsi":      randomProvince(),
+			"kota":          randomCity(),
+			"jalan":         fmt.Sprintf("Jl. %s No.%d", faker.Word(), rand.Intn(300)+1),
 		}
 	}
 	return data
@@ -52,16 +71,16 @@ func generateTenagaMedisData() []map[string]interface{} {
 	professions := []string{"Dokter Umum", "Dokter Spesialis Anak", "Perawat", "Bidan", "Ahli Gizi", "Dokter Gigi"}
 	for i := 0; i < NumTenagaMedis; i++ {
 		data[i] = map[string]interface{}{
-			"email":         "tm" + strconv.Itoa(i+1) + "@rs.com",
-			"NIKes":         faker.Numerify("########"),
+			"email":         fmt.Sprintf("tm%d@rs.com", i+1),
+			"NIKes":         fmt.Sprintf("%08d", rand.Intn(99999999)),
 			"profesi":       professions[i%len(professions)],
 			"kata_sandi":    "docpass",
 			"nama_lengkap":  faker.Name(),
 			"tanggal_lahir": faker.Date(),
-			"nomor_telepon": faker.Phonenumber(),
-			"provinsi":      faker.State(),
-			"kota":          faker.City(),
-			"jalan":         faker.Address(),
+			"nomor_telepon": fmt.Sprintf("08%d", rand.Intn(900000000)+100000000),
+			"provinsi":      randomProvince(),
+			"kota":          randomCity(),
+			"jalan":         fmt.Sprintf("Jl. %s No.%d", faker.Word(), rand.Intn(300)+1),
 		}
 	}
 	return data
@@ -75,10 +94,10 @@ func generateRumahSakitData() []map[string]interface{} {
 			"id_rs":            id_rs,
 			"email":            "info@" + id_rs + ".com",
 			"nama_rumah_sakit": "RSUD Sejahtera " + faker.LastName(),
-			"no_telepon":       faker.Phonenumber(),
-			"provinsi":         faker.State(),
-			"kota":             faker.City(),
-			"jalan":            faker.Address(),
+			"no_telepon":       fmt.Sprintf("021-%06d", rand.Intn(999999)),
+			"provinsi":         randomProvince(),
+			"kota":             randomCity(),
+			"jalan":            fmt.Sprintf("Jl. %s No.%d", faker.Word(), rand.Intn(300)+1),
 		}
 	}
 	return data
@@ -353,7 +372,7 @@ func seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedis
 // ===============================================
 //   ⚙️  MAIN FUNCTION (untuk memanggil seeder)
 // ===============================================
-/*
+
 func main() {
 	// --- Generate Data ---
 	pasienData := generatePasienData()
@@ -376,4 +395,3 @@ func main() {
 	// Asumsi createNeo4jSchema() dipanggil di sini
 	seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedisData, bayminData, obatData)
 }
-*/
