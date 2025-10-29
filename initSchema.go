@@ -107,7 +107,6 @@ func createCassandraSchema() {
 	fmt.Println("Cassandra denormalized schema created successfully.")
 }
 
-
 // ===============================================
 // BAGIAN 2 — SCHEMA NEO4J
 // ===============================================
@@ -153,7 +152,6 @@ func createNeo4jSchema() {
 	fmt.Println("Neo4j constraints created successfully.")
 }
 
-
 // ===============================================
 // MAIN FUNCTION
 // ===============================================
@@ -161,7 +159,6 @@ func main() {
 	createCassandraSchema()
 	createNeo4jSchema()
 }
-
 
 // ===============================================
 // HELPER FUNCTIONS

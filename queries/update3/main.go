@@ -1,0 +1,1 @@
+// Query: Ubah status suatu pemesanan layanan menjadi 'dibatalkan'.
