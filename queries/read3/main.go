@@ -84,7 +84,7 @@ func displayLogs(logs []BayminLogs) {
 }
 
 func main() {
-	email := "keitIpK@DijoyRl.edu"
+	email := "qXbIbDK@bInvBVI.net"
 
 	cassandra.InitCassandra()
 	defer cassandra.Close()
@@ -103,9 +103,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error Cassandra: %v", err)
 	}
-
+	elapsed := time.Since(start)
 	displayLogs(logs)
 
-	elapsed := time.Since(start)
 	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())
 }

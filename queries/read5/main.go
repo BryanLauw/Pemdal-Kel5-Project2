@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"src/cassandra"
 	"src/neo4j"
@@ -89,10 +90,13 @@ func main() {
 	cassandra.InitCassandra()
 	defer cassandra.Close()
 
+	start := time.Now()
 	results, err := getDetailResepFromNeo4j(idJanjiTemu)
+	elapsed := time.Since(start)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
 
 	displayResult(results)
+	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())
 }

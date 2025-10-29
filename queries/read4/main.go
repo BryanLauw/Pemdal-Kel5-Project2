@@ -3,15 +3,16 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"src/neo4j"
 )
 
 type MedikJanjiTemu struct {
-	Email string
-	Nama string
-	Profesi string
+	Email           string
+	Nama            string
+	Profesi         string
 	JumlahJanjiTemu int
 }
 
@@ -43,16 +44,25 @@ func getMedikJanjiTemuFromNeo4j() ([]MedikJanjiTemu, error) {
 	return results, nil
 }
 
-func displayResult(mediks []MedikJanjiTemu) {
+func displayResult(mediks []MedikJanjiTemu, limit int) {
+	fmt.Println("\n" + strings.Repeat("=", 120))
 	fmt.Println("     Jumlah Janji Temu per Tenaga Medis")
+	fmt.Println(strings.Repeat("=", 120))
 	fmt.Printf("%-5s %-40s %-30s %-25s %s\n", "No", "Email", "Nama Lengkap", "Profesi", "Jumlah Janji Temu")
+	fmt.Println(strings.Repeat("-", 120))
 
 	if len(mediks) == 0 {
 		fmt.Println("Tidak ada data janji temu dengan tenaga medis.")
 		return
 	}
 
-	for i, m := range mediks {
+	displayLimit := limit
+	if displayLimit > len(mediks) {
+		displayLimit = len(mediks)
+	}
+
+	for i := 0; i < displayLimit; i++ {
+		m := mediks[i]
 		fmt.Printf("%-5d %-40s %-30s %-25s %d\n",
 			i+1,
 			m.Email,
@@ -60,21 +70,22 @@ func displayResult(mediks []MedikJanjiTemu) {
 			m.Profesi,
 			m.JumlahJanjiTemu)
 	}
+
+	fmt.Println(strings.Repeat("=", 120) + "\n")
 }
 
 func main() {
 	neo4j.InitNeo4j()
 	defer neo4j.CloseNeo4j()
-	
+
 	start := time.Now()
 
 	result, err := getMedikJanjiTemuFromNeo4j()
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
-
-	displayResult(result)
-
 	elapsed := time.Since(start)
+	displayResult(result, 10)
+
 	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())
 }

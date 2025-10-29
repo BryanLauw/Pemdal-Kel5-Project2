@@ -16,47 +16,60 @@ type PatientOrderCost struct {
 }
 
 func getPatientOrderCosts() ([]PatientOrderCost, error) {
-
-	// Step 1: Get all medication orders
+	// Step 1: Get all orders
 	query := `SELECT id_pesanan, email_pemesan FROM rumahsakit.pemesanan_obat`
-
 	iter, err := cassandra.SelectCassandra(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pemesanan_obat: %v", err)
 	}
 	defer iter.Close()
 
-	patientMap := make(map[string]float64)
-
+	// Collect all order IDs first
+	type OrderInfo struct {
+		ID    string
+		Email string
+	}
+	orders := make([]OrderInfo, 0)
 	var idPesanan, emailPemesan string
-
 	for iter.Scan(&idPesanan, &emailPemesan) {
+		orders = append(orders, OrderInfo{ID: idPesanan, Email: emailPemesan})
+	}
 
-		// Step 2: Get order details (list of medications)
+	// Step 2: Cache all medication prices once
+	priceCache := make(map[string]float64)
+	priceQuery := `SELECT id_obat, harga FROM rumahsakit.obat`
+	priceIter, err := cassandra.SelectCassandra(priceQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer priceIter.Close()
+
+	var idObat string
+	var harga float64
+	for priceIter.Scan(&idObat, &harga) {
+		priceCache[idObat] = harga
+	}
+
+	// Step 3: Process orders using cached prices
+	patientMap := make(map[string]float64)
+	for _, order := range orders {
 		detailQuery := `SELECT daftar_obat FROM rumahsakit.detail_pesanan_obat WHERE id_pesanan = ?`
-		detailIter, err := cassandra.SelectCassandra(detailQuery, idPesanan)
+		detailIter, err := cassandra.SelectCassandra(detailQuery, order.ID)
 		if err != nil {
-			log.Printf("Error getting details for order %s: %v", idPesanan, err)
+			log.Printf("Error getting details for order %s: %v", order.ID, err)
 			continue
 		}
 
 		var daftarObat map[string]int
 		if detailIter.Scan(&daftarObat) {
-
-			// Step 3: Calculate costs
-			for idObat, jumlah := range daftarObat {
-				harga := getObatPrice(idObat)
-
+			for obatID, jumlah := range daftarObat {
+				// Use cached price instead of querying
+				harga := priceCache[obatID]
 				subtotal := harga * float64(jumlah)
-				patientMap[emailPemesan] += subtotal
+				patientMap[order.Email] += subtotal
 			}
-
 		}
 		detailIter.Close()
-	}
-
-	if err := iter.Close(); err != nil {
-		return nil, err
 	}
 
 	// Convert to slice and sort
@@ -73,22 +86,6 @@ func getPatientOrderCosts() ([]PatientOrderCost, error) {
 	})
 
 	return patients, nil
-}
-
-func getObatPrice(idObat string) float64 {
-	query := `SELECT harga FROM rumahsakit.obat WHERE id_obat = ? LIMIT 1`
-	iter, err := cassandra.SelectCassandra(query, idObat)
-	if err != nil {
-		log.Printf("Error querying obat %s: %v", idObat, err)
-		return 0
-	}
-	defer iter.Close()
-
-	var harga float64
-	if iter.Scan(&harga) {
-		return harga
-	}
-	return 0
 }
 
 func displayTopPatients(patients []PatientOrderCost, limit int) {
@@ -141,10 +138,6 @@ func formatRupiah(amount float64) string {
 
 	return result + decPart
 }
-
-// ===============================================
-// MAIN FUNCTION
-// ===============================================
 
 func main() {
 	cassandra.InitCassandra()
