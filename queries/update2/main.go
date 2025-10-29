@@ -1,0 +1,1 @@
+// Query: Pindahtugaskan tenaga medis ke departemen lain.

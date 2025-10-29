@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"src/cassandra"
@@ -44,6 +45,20 @@ func randomCity() string {
 	return cities[rand.Intn(len(cities))]
 }
 
+func randomStatusPemesanan() string {
+	statuses := []string{"belum dibayar", "dijadwalkan", "sedang berlangsung", "selesai", "dibatalkan",}
+	return statuses[rand.Intn(len(statuses))]
+}
+
+func randomLayananEnum() string {
+	layanan := []string{"vaksinasi", "fisioterapi", "laboratorium", "radiologi", "konsultasi", "rehabilitasi"}
+	return layanan[rand.Intn(len(layanan))]
+}
+
+func randomLabelObat() string {
+	labels := []string{"analgesik", "antibiotik", "obat herbal"}
+	return labels[rand.Intn(len(labels))]
+}
 
 // ===============================================
 // DATA GENERATION
@@ -116,12 +131,11 @@ func generateDepartemenData() []map[string]interface{} {
 }
 
 func generateLayananMedisData() []map[string]interface{} {
-	names := []string{"Konsultasi Umum", "Pemeriksaan Anak", "Tes Lab Darah", "Fisioterapi", "Rawat Inap", "Minor Surgery"}
 	data := make([]map[string]interface{}, NumLayanan)
 	for i := 0; i < NumLayanan; i++ {
 		data[i] = map[string]interface{}{
 			"id_layanan":    fmt.Sprintf("L%03d", i+1),
-			"nama_layanan":  names[i%len(names)] + " " + strconv.Itoa(i+1),
+			"nama_layanan":  randomLayananEnum(),
 			"biaya_layanan": float64(rand.Intn(400)+100) * 1000.0, // 100k - 500k
 		}
 	}
@@ -143,12 +157,11 @@ func generateBayminData(pasienData []map[string]interface{}) []map[string]interf
 
 func generateObatData() []map[string]interface{} {
 	data := make([]map[string]interface{}, NumObat)
-	labels := []string{"Pereda Nyeri", "Antibiotik", "Vitamin", "Obat Batuk", "Antasida"}
 	for i := 0; i < NumObat; i++ {
 		data[i] = map[string]interface{}{
 			"id_obat": fmt.Sprintf("O%04d", i+1),
 			"nama":    faker.Word() + " " + faker.Word(),
-			"label":   labels[i%len(labels)],
+			"label":   randomLabelObat(),
 			"harga":   float64(rand.Intn(50)+5) * 1000.0,
 			"stok":    rand.Intn(200) + 50,
 		}
@@ -220,7 +233,7 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 			emailPemesan := faker.Email()
 			
 			cassandra.InsertCassandra(`INSERT INTO rumahsakit.pemesanan_obat (id_pesanan, email_pemesan, waktu_pemesanan, status_pemesanan) VALUES (?, ?, ?, ?)`, 
-				poID, emailPemesan, now.Add(time.Duration(i)*time.Hour), []string{"TERKIRIM", "DIPROSES"}[rand.Intn(2)])
+				poID, emailPemesan, now.Add(time.Duration(i)*time.Hour), randomStatusPemesanan())
 			
 			cassandra.InsertCassandra(`INSERT INTO rumahsakit.detail_pesanan_obat (id_pesanan, daftar_obat) VALUES (?, ?)`, poID, obatMap)
 		}
@@ -336,17 +349,16 @@ func seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedis
 			"id_janji_temu": jtID,
 			"waktu_pelaksanaan": time.Now().Add(time.Duration(rand.Intn(30)*24) * time.Hour).Format("2006-01-02 15:04:05"),
 			"alasan":            faker.Sentence(),
-			"status":            []string{"SELESAI", "TERJADWAL", "BATAL"}[rand.Intn(3)],
+			"status":            randomStatusPemesanan(),
 		}
 		neo4j.CreateNeo4j(`CREATE (j:JanjiTemu {id_janji_temu: $id_janji_temu, waktu_pelaksanaan: $waktu_pelaksanaan, alasan: $alasan, status: $status})`, janjiTemuData)
-		
+
 		// Link JanjiTemu
 		neo4j.UpdateNeo4j(`MATCH (p:Pasien {email: $p_email}), (j:JanjiTemu {id_janji_temu: $jt_id}) MERGE (p)<-[:memiliki_janji]-(j)`, map[string]interface{}{"p_email": pasien["email"], "jt_id": jtID})
 		neo4j.UpdateNeo4j(`MATCH (j:JanjiTemu {id_janji_temu: $jt_id}), (t:TenagaMedis {email: $t_email}) MERGE (j)-[:dengan_dokter]->(t)`, map[string]interface{}{"t_email": dokter["email"], "jt_id": jtID})
 		neo4j.UpdateNeo4j(`MATCH (j:JanjiTemu {id_janji_temu: $jt_id}), (r:RumahSakit {id_rs: $id_rs}) MERGE (j)-[:di_rs]->(r)`, map[string]interface{}{"id_rs": rs["id_rs"], "jt_id": jtID})
 		
-		// Create Resep/DetailResep jika status SELESAI
-		if janjiTemuData["status"] == "SELESAI" {
+		if strings.EqualFold(janjiTemuData["status"].(string), "SELESAI") || strings.EqualFold(janjiTemuData["status"].(string), "selesai") {
 			resepID := fmt.Sprintf("R%05d", i)
 			resepData := map[string]interface{}{"id_resep": resepID, "penyakit": faker.Word() + " " + faker.Word()}
 			neo4j.CreateNeo4j(`CREATE (r:Resep {id_resep: $id_resep, penyakit: $penyakit})`, resepData)

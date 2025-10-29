@@ -1,0 +1,1 @@
+// Query: Hapus semua janji temu yang sudah lewat lebih dari 30 hari dan masih belum selesai.
