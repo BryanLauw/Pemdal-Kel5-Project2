@@ -338,7 +338,7 @@ func seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedis
 	}
 
 	// 5. JanjiTemu, Resep, DetailResep
-	fmt.Println("   -> Creating 1000 Sample Transactions (JanjiTemu/Resep)...")
+	fmt.Println("   -> Creating 10000 Sample Transactions (JanjiTemu/Resep)...")
 	for i := 1; i <= 10000; i++ {
 		// Randomly select entities
 		pasien := pasienData[rand.Intn(len(pasienData))]
