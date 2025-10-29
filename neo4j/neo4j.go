@@ -46,6 +46,30 @@ func CreateNeo4j(query string, params map[string]interface{}) error {
 	return runWrite(query, params)
 }
 
+// Create and Return data (for INSERT with RETURN clause)
+func CreateAndReturnNeo4j(query string, params map[string]interface{}) ([]map[string]interface{}, error) {
+	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	result, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		res, err := tx.Run(ctx, query, params)
+		if err != nil {
+			return nil, err
+		}
+
+		var records []map[string]interface{}
+		for res.Next(ctx) {
+			records = append(records, res.Record().AsMap())
+		}
+		return records, res.Err()
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result.([]map[string]interface{}), nil
+}
+
 // Read / Query data
 func ReadNeo4j(query string, params map[string]interface{}) ([]map[string]interface{}, error) {
 	session := driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})

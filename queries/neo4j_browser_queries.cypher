@@ -75,71 +75,40 @@ LIMIT 50;
 
 
 // ========================================
-// BONUS: Visualisasi Graph
-// ========================================
-
-// Lihat semua Pasien (limit 25)
-MATCH (p:Pasien)
-RETURN p
-LIMIT 25;
-
-// Lihat Rumah Sakit dan Departemennya
-MATCH (rs:RumahSakit)-[:memiliki_departemen]->(d:Departemen)
-RETURN rs, d
-LIMIT 50;
-
-// Lihat Tenaga Medis dan tempat kerja mereka
-MATCH (tm:TenagaMedis)-[:bekerja_di]->(d:Departemen)<-[:memiliki_departemen]-(rs:RumahSakit)
-RETURN tm, d, rs
-LIMIT 30;
-
-// Lihat Pasien dan perangkat Baymin mereka
-MATCH (p:Pasien)-[:memiliki_perangkat]->(b:Baymin)
-RETURN p, b
-LIMIT 25;
-
-
-// ========================================
-// ANALISIS QUERIES
-// ========================================
-
-// Count semua nodes per label
-MATCH (n)
-RETURN labels(n) AS label, count(*) AS total
-ORDER BY total DESC;
-
-// Count semua relationships per type
-MATCH ()-[r]->()
-RETURN type(r) AS relationship, count(*) AS total
-ORDER BY total DESC;
-
-// Cari Rumah Sakit dengan departemen terbanyak
-MATCH (rs:RumahSakit)-[:memiliki_departemen]->(d:Departemen)
-RETURN rs.nama_rumah_sakit AS rumah_sakit, rs.kota AS kota, count(d) AS jumlah_departemen
-ORDER BY jumlah_departemen DESC
-LIMIT 10;
-
-// Cari profesi dengan jumlah tenaga medis terbanyak
-MATCH (tm:TenagaMedis)
-RETURN tm.profesi AS profesi, count(*) AS jumlah
-ORDER BY jumlah DESC;
-
-
-// ========================================
 // CLEANUP (Hati-hati!)
 // ========================================
 
-// Hapus data test yang baru dibuat
+// ========================================
+// HAPUS DATA INSERT 1-4 (untuk re-run queries)
+// ========================================
+
+// Hapus Pasien dengan email 'andi@example.com' (INSERT 1)
+MATCH (p:Pasien {email: 'andi@example.com'})
+DETACH DELETE p;
+
+// Hapus Rumah Sakit 'RS Sehat Selalu' beserta departemennya (INSERT 3 & 4)
+MATCH (rs:RumahSakit {id_rs: 'RS999'})
+OPTIONAL MATCH (rs)-[:memiliki_departemen]->(d:Departemen)
+DETACH DELETE rs, d;
+
+// Atau hapus hanya departemen 'Kardiologi' di RS tertentu (INSERT 4)
+MATCH (rs:RumahSakit {nama_rumah_sakit: 'RS Sehat Selalu'})-[:memiliki_departemen]->(d:Departemen {nama_departemen: 'Kardiologi'})
+DETACH DELETE d;
+
+// Hapus semua departemen yang tidak terhubung ke RS manapun
+MATCH (d:Departemen)
+WHERE NOT (d)<-[:memiliki_departemen]-()
+DELETE d;
+
+// ========================================
+// QUICK CLEANUP - Hapus semua data INSERT 1-4 sekaligus
+// ========================================
 MATCH (p:Pasien {email: 'andi@example.com'})
 DETACH DELETE p;
 
 MATCH (rs:RumahSakit {id_rs: 'RS999'})
-DETACH DELETE rs;
-
-// Hapus semua departemen yang tidak terhubung ke RS
-MATCH (d:Departemen)
-WHERE NOT (d)<-[:memiliki_departemen]-()
-DELETE d;
+OPTIONAL MATCH (rs)-[r]->(d:Departemen)
+DETACH DELETE rs, d;
 
 
 // ========================================
