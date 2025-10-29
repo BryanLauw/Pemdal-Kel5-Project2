@@ -14,14 +14,14 @@ import (
 )
 
 // ===============================================
-//   CONSTANTS (DARI PERMINTAAN USER)
+//   CONSTANTS
 // ===============================================
 
 const (
-	NumPasien      = 1000
-	NumTenagaMedis = 500
-	NumRumahSakit  = 100 // FIXED: Menjadi 100
-	NumDepartemen  = 300 // FIXED: Menjadi 300
+	NumPasien      = 9000
+	NumTenagaMedis = 1000
+	NumRumahSakit  = 100
+	NumDepartemen  = 500
 	NumLayanan     = 500
 	NumObat        = 1000
 )
@@ -46,7 +46,7 @@ func randomCity() string {
 
 
 // ===============================================
-//   📦 DATA GENERATION
+// DATA GENERATION
 // ===============================================
 
 func generatePasienData() []map[string]interface{} {
@@ -157,22 +157,21 @@ func generateObatData() []map[string]interface{} {
 }
 
 // ===============================================
-//   📦 SEEDER CASSANDRA
+// SEEDER CASSANDRA
 // ===============================================
 
 func seedCassandra(obatData, rsData, layananData []map[string]interface{}, bayminData []map[string]interface{}) {
-	fmt.Println("\n📦 Seeding Cassandra tables...")
+	fmt.Println("\nSeeding Cassandra tables...")
 
-	// --- 4️⃣ MASTER OBAT ---
+	// --- MASTER OBAT ---
 	for _, data := range obatData {
 		query := `INSERT INTO rumahsakit.obat (id_obat, nama, label, harga, stok) VALUES (?, ?, ?, ?, ?)`
 		if err := cassandra.InsertCassandra(query, data["id_obat"], data["nama"], data["label"], data["harga"], data["stok"]); err != nil {
-			log.Printf("❌ Error inserting obat %s: %v", data["id_obat"], err)
+			log.Printf("Error inserting obat %s: %v", data["id_obat"], err)
 		}
 	}
 
-	// --- 6️⃣ PELAKSANAAN LAYANAN MEDIS (lokasi_layanan) ---
-	// FIXED: Menggunakan multiple RS. Kita asumsikan setiap RS menawarkan 5-10 layanan secara acak.
+	// --- PELAKSANAAN LAYANAN MEDIS (lokasi_layanan) ---
 	numServicesToOffer := rand.Intn(6) + 5 // 5 to 10 services per RS
 	
 	// Gunakan map untuk memastikan tidak ada duplikasi RS-Layanan yang dimasukkan ke Cassandra
@@ -181,7 +180,6 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 	for _, rs := range rsData {
 		idRs := rs["id_rs"].(string)
 		
-		// Acak Layanan untuk setiap RS
 		rand.Shuffle(len(layananData), func(i, j int) { layananData[i], layananData[j] = layananData[j], layananData[i] })
 		
 		for i := 0; i < numServicesToOffer && i < len(layananData); i++ {
@@ -190,14 +188,14 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 			
 			key := idRs + "-" + idLayanan
 			if _, exists := seededLocations[key]; exists {
-				continue // Skip if already seeded (shouldn't happen with shuffle, but good practice)
+				continue // Skip if already seeded
 			}
 			seededLocations[key] = true
 
 			query := `INSERT INTO rumahsakit.lokasi_layanan (id_rs, id_layanan, nama_layanan, biaya_layanan) VALUES (?, ?, ?, ?)`
 			err := cassandra.InsertCassandra(query, idRs, idLayanan, layanan["nama_layanan"], layanan["biaya_layanan"])
 			if err != nil {
-				log.Printf("❌ Error inserting lokasi_layanan %s-%s: %v", idRs, idLayanan, err)
+				log.Printf("Error inserting lokasi_layanan %s-%s: %v", idRs, idLayanan, err)
 			}
 		}
 	}
@@ -205,14 +203,14 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 	// --- Data Transaksional Dummy (Hanya 5 contoh) ---
 	now := time.Now()
 	for i := 1; i <= 5; i++ {
-		// 1️⃣ LOG AKTIVITAS (dari Baymin ID random)
+		// LOG AKTIVITAS (dari Baymin ID random)
 		if len(bayminData) > 0 {
 			idPerangkat := bayminData[rand.Intn(len(bayminData))]["id_perangkat"]
 			cassandra.InsertCassandra(`INSERT INTO rumahsakit.log_aktivitas (id_perangkat, waktu_aktivitas, detail_aktivitas) VALUES (?, ?, ?)`, 
 				idPerangkat, now.Add(-time.Duration(i)*time.Hour), "Status perangkat: "+faker.Sentence())
 		}
 		
-		// 2️⃣ & 3️⃣ PEMESANAN OBAT & DETAIL PEMESANAN OBAT
+		// PEMESANAN OBAT & DETAIL PEMESANAN OBAT
 		if len(obatData) > 1 {
 			poID := fmt.Sprintf("POB%05d", i)
 			obatMap := map[string]int{
@@ -228,89 +226,89 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 		}
 	}
 
-	fmt.Println("✅ Cassandra tables seeded successfully.")
+	fmt.Println("Cassandra tables seeded successfully.")
 }
 
 // ===============================================
-//   🕸️  SEEDER NEO4J
+// SEEDER NEO4J
 // ===============================================
 
 func seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedisData, bayminData, obatData []map[string]interface{}) {
-	fmt.Println("\n🕸️ Seeding Neo4j nodes and relationships...")
+	fmt.Println("\nSeeding Neo4j nodes and relationships...")
 
-	// --- Create Nodes ---
+	// ===============================================
+	// Create Nodes
+	// ===============================================
 
 	fmt.Println("   -> Creating Nodes...")
-	// Pasien (1000)
+	// Pasien
 	for _, data := range pasienData {
 		query := `CREATE (p:Pasien {email: $email, kata_sandi: $kata_sandi, nama_lengkap: $nama_lengkap, tanggal_lahir: $tanggal_lahir, nomor_telepon: $nomor_telepon, provinsi: $provinsi, kota: $kota, jalan: $jalan})`
 		if err := neo4j.CreateNeo4j(query, data); err != nil {
-			// Log as warning since bulk constraint failure might happen
-			log.Printf("⚠️ Error creating Pasien %s: %v", data["email"], err)
+			log.Printf("Error creating Pasien %s: %v", data["email"], err)
 		}
 	}
 
-	// TenagaMedis (500)
+	// TenagaMedis
 	for _, data := range tenagaMedisData {
 		query := `CREATE (t:TenagaMedis {email: $email, NIKes: $NIKes, profesi: $profesi, kata_sandi: $kata_sandi, nama_lengkap: $nama_lengkap, tanggal_lahir: $tanggal_lahir, nomor_telepon: $nomor_telepon, provinsi: $provinsi, kota: $kota, jalan: $jalan})`
 		neo4j.CreateNeo4j(query, data)
 	}
 
-	// RumahSakit (100) - FIXED
+	// RumahSakit
 	for _, data := range rsData {
 		query := `CREATE (r:RumahSakit {id_rs: $id_rs, email: $email, nama_rumah_sakit: $nama_rumah_sakit, no_telepon: $no_telepon, provinsi: $provinsi, kota: $kota, jalan: $jalan})`
 		neo4j.CreateNeo4j(query, data)
 	}
 
-	// Departemen (300)
+	// Departemen
 	for _, data := range departemenData {
 		query := `CREATE (d:Departemen {nama_departemen: $nama_departemen, gedung: $gedung})`
 		neo4j.CreateNeo4j(query, data)
 	}
 
-	// LayananMedis (500)
+	// LayananMedis
 	for _, data := range layananMedisData {
 		query := `CREATE (l:LayananMedis {id_layanan: $id_layanan, nama_layanan: $nama_layanan, biaya_layanan: $biaya_layanan})`
 		neo4j.CreateNeo4j(query, data)
 	}
 
-	// Baymin (1000)
+	// Baymin
 	for _, data := range bayminData {
 		query := `CREATE (b:Baymin {id_perangkat: $id_perangkat, warna: $warna, email_pasien: $email_pasien})`
 		neo4j.CreateNeo4j(query, data)
 	}
-	
-	// --- Create Relationships ---
-	
+
+	// ===============================================
+	// Create Relationships
+	// ===============================================
+
 	fmt.Println("   -> Creating Relationships...")
 
-	// 1. Pasien memiliki_perangkat Baymin (1000 relasi)
+	// 1. Pasien memiliki_perangkat Baymin
 	for _, data := range bayminData {
 		query := `MATCH (p:Pasien {email: $email_pasien}), (b:Baymin {id_perangkat: $id_perangkat}) MERGE (p)-[:memiliki_perangkat]->(b)`
 		params := map[string]interface{}{"email_pasien": data["email_pasien"], "id_perangkat": data["id_perangkat"]}
 		neo4j.UpdateNeo4j(query, params)
 	}
 
-	// 2. TenagaMedis bekerja_di Departemen (500 relasi)
+	// 2. TenagaMedis bekerja_di Departemen
 	for i, tm := range tenagaMedisData {
-		// Distribusi 500 TM ke 300 Departemen
 		dept := departemenData[i%len(departemenData)]
 		query := `MATCH (t:TenagaMedis {email: $email_tm}), (d:Departemen {nama_departemen: $nama_dept}) MERGE (t)-[:bekerja_di]->(d)`
 		params := map[string]interface{}{"email_tm": tm["email"], "nama_dept": dept["nama_departemen"]}
 		neo4j.UpdateNeo4j(query, params)
 	}
 
-	// 3. RumahSakit memiliki_departemen Departemen (300 relasi)
+	// 3. RumahSakit memiliki_departemen Departemen
 	for i, dept := range departemenData {
-		// Distribusi 300 Departemen ke 100 RS
 		rs := rsData[i%len(rsData)]
 		query := `MATCH (r:RumahSakit {id_rs: $id_rs}), (d:Departemen {nama_departemen: $nama_dept}) MERGE (r)-[:memiliki_departemen]->(d)`
 		params := map[string]interface{}{"id_rs": rs["id_rs"], "nama_dept": dept["nama_departemen"]}
 		neo4j.UpdateNeo4j(query, params)
 	}
 
-	// 4. RumahSakit menawarkan_layanan LayananMedis (5-10 relasi per RS)
-	// Logika harus sama dengan yang digunakan di seedCassandra untuk konsistensi data
+	// 4. RumahSakit menawarkan_layanan LayananMedis
 	numServicesToOffer := rand.Intn(6) + 5 
 	for _, rs := range rsData {
 		idRs := rs["id_rs"].(string)
@@ -366,11 +364,11 @@ func seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedis
 	}
 
 
-	fmt.Println("✅ Neo4j nodes and relationships seeded successfully.")
+	fmt.Println("Neo4j nodes and relationships seeded successfully.")
 }
 
 // ===============================================
-//   ⚙️  MAIN FUNCTION (untuk memanggil seeder)
+// MAIN FUNCTION (untuk memanggil seeder)
 // ===============================================
 
 func main() {
@@ -386,12 +384,10 @@ func main() {
 	// --- Cassandra ---
 	cassandra.InitCassandra()
 	defer cassandra.Session.Close()
-	// Asumsi createCassandraSchema() dipanggil di sini
 	seedCassandra(obatData, rsData, layananMedisData, bayminData)
 
 	// --- Neo4j ---
 	neo4j.InitNeo4j()
 	defer neo4j.CloseNeo4j()
-	// Asumsi createNeo4jSchema() dipanggil di sini
 	seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedisData, bayminData, obatData)
 }

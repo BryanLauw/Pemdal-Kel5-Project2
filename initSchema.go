@@ -10,38 +10,37 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
-//
 // ===============================================
-//   🧱 BAGIAN 1 — SCHEMA CASSANDRA
+// SCHEMA CASSANDRA
 // ===============================================
 func createCassandraSchema() {
 	host := getEnv("CASSANDRA_HOST", "127.0.0.1")
 	port := getEnvInt("CASSANDRA_PORT", 9042)
 
-	fmt.Println("📦 Creating Cassandra keyspace and tables (denormalized model)...")
+	fmt.Println("Creating Cassandra keyspace and tables ...")
 
-	// 1️⃣ Koneksi sementara tanpa keyspace
+	// Koneksi sementara tanpa keyspace
 	tempCluster := gocql.NewCluster(host)
 	tempCluster.Port = port
 	tempCluster.Consistency = gocql.Quorum
 
 	tempSession, err := tempCluster.CreateSession()
 	if err != nil {
-		log.Fatalf("❌ Cassandra initial connection failed: %v", err)
+		log.Fatalf("Cassandra initial connection failed: %v", err)
 	}
 	defer tempSession.Close()
 
-	// 2️⃣ Buat keyspace jika belum ada
+	// Buat keyspace
 	err = tempSession.Query(`
 		CREATE KEYSPACE IF NOT EXISTS rumahsakit
 		WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
 	`).Exec()
 	if err != nil {
-		log.Fatalf("❌ Failed to create keyspace rumahsakit: %v", err)
+		log.Fatalf("Failed to create keyspace rumahsakit: %v", err)
 	}
-	fmt.Println("🧱 Keyspace 'rumahsakit' ready.")
+	fmt.Println("Keyspace 'rumahsakit' ready.")
 
-	// 3️⃣ Koneksi ulang ke keyspace rumahsakit
+	// Koneksi ulang ke keyspace rumahsakit
 	cluster := gocql.NewCluster(host)
 	cluster.Port = port
 	cluster.Keyspace = "rumahsakit"
@@ -49,11 +48,11 @@ func createCassandraSchema() {
 
 	session, err := cluster.CreateSession()
 	if err != nil {
-		log.Fatalf("❌ Cassandra connection to keyspace failed: %v", err)
+		log.Fatalf("Cassandra connection to keyspace failed: %v", err)
 	}
 	defer session.Close()
 
-	// 4️⃣ Buat tabel-tabel
+	// Buat tabel-tabel
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS log_aktivitas (
 			id_perangkat TEXT,
@@ -101,27 +100,27 @@ func createCassandraSchema() {
 
 	for _, q := range queries {
 		if err := session.Query(q).Exec(); err != nil {
-			log.Println("❌ Error executing query:", err)
+			log.Println("Error executing query:", err)
 		}
 	}
 
-	fmt.Println("✅ Cassandra denormalized schema created successfully.")
+	fmt.Println("Cassandra denormalized schema created successfully.")
 }
 
-//
+
 // ===============================================
-//   🕸️ BAGIAN 2 — SCHEMA NEO4J
+// BAGIAN 2 — SCHEMA NEO4J
 // ===============================================
 func createNeo4jSchema() {
-	fmt.Println("🧱 Creating Neo4j constraints and relationships...")
+	fmt.Println("Creating Neo4j constraints and relationships...")
 
-	uri := getEnv("NEO4J_URI", "bolt://localhost:7687") // ⬅️ ganti dari 'neo4j' ke 'localhost'
+	uri := getEnv("NEO4J_URI", "bolt://localhost:7687")
 	user := getEnv("NEO4J_USER", "neo4j")
 	pass := getEnv("NEO4J_PASSWORD", "password123")
 
 	driver, err := neo4j.NewDriverWithContext(uri, neo4j.BasicAuth(user, pass, ""))
 	if err != nil {
-		log.Fatalf("❌ Cannot connect to Neo4j: %v", err)
+		log.Fatalf("Cannot connect to Neo4j: %v", err)
 	}
 	defer driver.Close(context.Background())
 
@@ -147,25 +146,25 @@ func createNeo4jSchema() {
 				return nil, err
 			})
 		if err != nil {
-			log.Printf("⚠️ Neo4j Query failed: %s\nError: %v\n", q, err)
+			log.Printf("Neo4j Query failed: %s\nError: %v\n", q, err)
 		}
 	}
 
-	fmt.Println("✅ Neo4j constraints created successfully.")
+	fmt.Println("Neo4j constraints created successfully.")
 }
 
-//
+
 // ===============================================
-//   ⚙️ MAIN FUNCTION
+// MAIN FUNCTION
 // ===============================================
 func main() {
 	createCassandraSchema()
 	createNeo4jSchema()
 }
 
-//
+
 // ===============================================
-//   🔧 HELPER FUNCTIONS
+// HELPER FUNCTIONS
 // ===============================================
 func getEnv(key, def string) string {
 	if val, ok := os.LookupEnv(key); ok {

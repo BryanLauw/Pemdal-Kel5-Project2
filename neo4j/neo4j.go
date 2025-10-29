@@ -14,7 +14,9 @@ var (
 	ctx    = context.Background()
 )
 
+// ====================================
 // Init Neo4j connection
+// ====================================
 func InitNeo4j() {
 	uri := getEnv("NEO4J_URI", "bolt://127.0.0.1:7687")
 	user := getEnv("NEO4J_USER", "neo4j")
@@ -23,9 +25,9 @@ func InitNeo4j() {
 	var err error
 	driver, err = neo4j.NewDriverWithContext(uri, neo4j.BasicAuth(user, pass, ""))
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to Neo4j: %v", err)
+		log.Fatalf("Failed to connect to Neo4j: %v", err)
 	}
-	fmt.Println("✅ Connected to Neo4j")
+	fmt.Println("Connected to Neo4j")
 }
 
 // Close driver
@@ -35,7 +37,9 @@ func CloseNeo4j() {
 	}
 }
 
-// --- CRUD Functions ---
+// ====================================
+// CRUD Functions
+// ====================================
 
 // Create Node or Relationship
 func CreateNeo4j(query string, params map[string]interface{}) error {

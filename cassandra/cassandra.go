@@ -9,7 +9,9 @@ import (
 
 var Session *gocql.Session
 
+// ====================================
 // Init Cassandra connection
+// ====================================
 func InitCassandra() {
 	cluster := gocql.NewCluster(getEnv("CASSANDRA_HOST", "127.0.0.1"))
 	cluster.Port = getEnvInt("CASSANDRA_PORT", 9042)
@@ -18,10 +20,10 @@ func InitCassandra() {
 
 	session, err := cluster.CreateSession()
 	if err != nil {
-		log.Fatalf("❌ Cassandra connection failed: %v", err)
+		log.Fatalf("Cassandra connection failed: %v", err)
 	}
 	Session = session
-	fmt.Println("✅ Connected to Cassandra")
+	fmt.Println("Connected to Cassandra")
 }
 
 // Close session
@@ -30,6 +32,11 @@ func Close() {
 		Session.Close()
 	}
 }
+
+
+// ====================================
+// CRUD Functions
+// ====================================
 
 // Generic Query Executor (CQL)
 func ExecCassandra(query string, params ...interface{}) error {
