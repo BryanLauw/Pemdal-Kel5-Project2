@@ -3,33 +3,24 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"src/neo4j"
 )
-
-// ===============================================
-// DATA STRUCTURE
-// ===============================================
 
 type RumahSakitStats struct {
 	NamaRumahSakit  string
 	JumlahJanjiTemu int
 }
 
-// ===============================================
-// QUERY NEO4J
-// ===============================================
-
 func getTopHospitalsByAppointments() ([]RumahSakitStats, error) {
-	// Count appointments per hospital
 	query := `
 		MATCH (rs:RumahSakit)<-[:di_rs]-(j:JanjiTemu)
 		WITH rs, COUNT(j) as jumlah_janji_temu
 		RETURN rs.nama_rumah_sakit AS nama_rumah_sakit,
 		       jumlah_janji_temu
 		ORDER BY jumlah_janji_temu DESC
-		LIMIT 10
 	`
 
 	results, err := neo4j.ReadNeo4j(query, nil)
@@ -49,23 +40,29 @@ func getTopHospitalsByAppointments() ([]RumahSakitStats, error) {
 	return hospitals, nil
 }
 
-// ===============================================
-// DISPLAY FUNCTION
-// ===============================================
-
-func displayHospitals(hospitals []RumahSakitStats) {
+func displayHospitals(hospitals []RumahSakitStats, limit int) {
+	fmt.Println("\n" + strings.Repeat("=", 70))
 	fmt.Println("     10 RUMAH SAKIT DENGAN JUMLAH JANJI TEMU TERBANYAK")
+	fmt.Println(strings.Repeat("=", 70))
 	fmt.Printf("%-5s %-45s %s\n", "No", "Nama Rumah Sakit", "Jumlah Janji Temu")
+	fmt.Println(strings.Repeat("-", 70))
 
 	if len(hospitals) == 0 {
 		fmt.Println("Tidak ada data rumah sakit.")
 		return
 	}
 
-	for i, h := range hospitals {
+	displayLimit := limit
+	if displayLimit > len(hospitals) {
+		displayLimit = len(hospitals)
+	}
+
+	for i := 0; i < displayLimit; i++ {
+		h := hospitals[i]
 		fmt.Printf("%-5d %-45s %d\n", i+1, truncateString(h.NamaRumahSakit, 45), h.JumlahJanjiTemu)
 	}
 
+	fmt.Println(strings.Repeat("=", 70) + "\n")
 }
 
 func truncateString(s string, maxLen int) string {
@@ -75,13 +72,8 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// ===============================================
-// MAIN FUNCTION
-// ===============================================
-
 func main() {
 	// Initialize Neo4j connection
-	fmt.Println("Initializing Neo4j connection...")
 	neo4j.InitNeo4j()
 	defer neo4j.CloseNeo4j()
 
@@ -95,9 +87,7 @@ func main() {
 		log.Fatalf("Error: %v", err)
 	}
 
-	// Display results
-	displayHospitals(hospitals)
+	displayHospitals(hospitals, 10)
 
-	// Timing summary
 	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())
 }

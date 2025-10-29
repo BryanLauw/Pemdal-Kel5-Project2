@@ -9,19 +9,11 @@ import (
 	"src/neo4j"
 )
 
-// ===============================================
-// DATA STRUCTURE
-// ===============================================
-
 type PasienNoResep struct {
 	Email           string
 	NamaLengkap     string
 	JumlahJanjiTemu int
 }
-
-// ===============================================
-// QUERY NEO4J
-// ===============================================
 
 func getPatientsWithoutPrescriptions() ([]PasienNoResep, error) {
 	// Find patients who have appointments but those appointments didn't produce prescriptions
@@ -33,7 +25,6 @@ func getPatientsWithoutPrescriptions() ([]PasienNoResep, error) {
 		       p.nama_lengkap AS nama_lengkap,
 		       jumlah_janji_temu
 		ORDER BY jumlah_janji_temu DESC, p.nama_lengkap ASC
-		LIMIT 5
 	`
 
 	results, err := neo4j.ReadNeo4j(query, nil)
@@ -54,11 +45,7 @@ func getPatientsWithoutPrescriptions() ([]PasienNoResep, error) {
 	return patients, nil
 }
 
-// ===============================================
-// DISPLAY FUNCTION
-// ===============================================
-
-func displayPatients(patients []PasienNoResep) {
+func displayPatients(patients []PasienNoResep, limit int) {
 	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("     PASIEN DENGAN JANJI TEMU TANPA RESEP")
 	fmt.Println(strings.Repeat("=", 80))
@@ -70,7 +57,13 @@ func displayPatients(patients []PasienNoResep) {
 		return
 	}
 
-	for i, p := range patients {
+	displayLimit := limit
+	if displayLimit > len(patients) {
+		displayLimit = len(patients)
+	}
+
+	for i := 0; i < displayLimit; i++ {
+		p := patients[i]
 		fmt.Printf("%-5d %-35s %-30s %d\n",
 			i+1,
 			truncateString(p.NamaLengkap, 35),
@@ -88,13 +81,8 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// ===============================================
-// MAIN FUNCTION
-// ===============================================
-
 func main() {
 	// Initialize Neo4j connection
-	fmt.Println("Initializing Neo4j connection...")
 	neo4j.InitNeo4j()
 	defer neo4j.CloseNeo4j()
 
@@ -109,10 +97,7 @@ func main() {
 	}
 
 	// Display results
-	displayPatients(patients)
-
-	// Summary
-	fmt.Printf("Total patients with appointments but no prescriptions: %d\n", len(patients))
+	displayPatients(patients, 10)
 
 	// Timing summary
 	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 	"time"
 
 	"src/cassandra"
@@ -14,7 +15,8 @@ type PatientOrderCost struct {
 	TotalBiaya float64
 }
 
-func getPatientOrderCostsFromCassandra() ([]PatientOrderCost, error) {
+func getPatientOrderCosts() ([]PatientOrderCost, error) {
+
 	// Step 1: Get all medication orders
 	query := `SELECT id_pesanan, email_pemesan FROM rumahsakit.pemesanan_obat`
 
@@ -29,6 +31,7 @@ func getPatientOrderCostsFromCassandra() ([]PatientOrderCost, error) {
 	var idPesanan, emailPemesan string
 
 	for iter.Scan(&idPesanan, &emailPemesan) {
+
 		// Step 2: Get order details (list of medications)
 		detailQuery := `SELECT daftar_obat FROM rumahsakit.detail_pesanan_obat WHERE id_pesanan = ?`
 		detailIter, err := cassandra.SelectCassandra(detailQuery, idPesanan)
@@ -39,12 +42,15 @@ func getPatientOrderCostsFromCassandra() ([]PatientOrderCost, error) {
 
 		var daftarObat map[string]int
 		if detailIter.Scan(&daftarObat) {
+
 			// Step 3: Calculate costs
 			for idObat, jumlah := range daftarObat {
 				harga := getObatPrice(idObat)
+
 				subtotal := harga * float64(jumlah)
 				patientMap[emailPemesan] += subtotal
 			}
+
 		}
 		detailIter.Close()
 	}
@@ -53,6 +59,7 @@ func getPatientOrderCostsFromCassandra() ([]PatientOrderCost, error) {
 		return nil, err
 	}
 
+	// Convert to slice and sort
 	patients := make([]PatientOrderCost, 0, len(patientMap))
 	for email, totalBiaya := range patientMap {
 		patients = append(patients, PatientOrderCost{
@@ -85,8 +92,11 @@ func getObatPrice(idObat string) float64 {
 }
 
 func displayTopPatients(patients []PatientOrderCost, limit int) {
+	fmt.Println("\n" + strings.Repeat("=", 70))
 	fmt.Println("     PASIEN DENGAN BIAYA PEMESANAN OBAT TERBESAR")
+	fmt.Println(strings.Repeat("=", 70))
 	fmt.Printf("%-5s %-40s %s\n", "No", "Email Pemesan", "Total Biaya")
+	fmt.Println(strings.Repeat("-", 70))
 
 	if len(patients) == 0 {
 		fmt.Println("Tidak ada data pemesanan obat.")
@@ -105,6 +115,8 @@ func displayTopPatients(patients []PatientOrderCost, limit int) {
 			p.Email,
 			formatRupiah(p.TotalBiaya))
 	}
+
+	fmt.Println(strings.Repeat("=", 70) + "\n")
 }
 
 func formatRupiah(amount float64) string {
@@ -130,15 +142,16 @@ func formatRupiah(amount float64) string {
 	return result + decPart
 }
 
+// ===============================================
+// MAIN FUNCTION
+// ===============================================
+
 func main() {
-	fmt.Println("Initializing Cassandra connection...")
 	cassandra.InitCassandra()
 	defer cassandra.Close()
 
-	fmt.Println("Fetching patient medication order costs...")
-
 	start := time.Now()
-	patients, err := getPatientOrderCostsFromCassandra()
+	patients, err := getPatientOrderCosts()
 	elapsed := time.Since(start)
 	if err != nil {
 		log.Fatalf("Error getting patient order costs: %v", err)
