@@ -106,33 +106,6 @@ Jika berhasil, kamu akan masuk ke CQL shell. Ketik `exit` untuk keluar.
    - Cek Neo4j sudah running: `docker ps | findstr neo4j`
    - Cek logs: `docker logs neo4j --tail 20`
 
-### 2.5 Test Connection (Optional tapi Recommended)
-
-Sebelum lanjut, test koneksi ke kedua database:
-
-```powershell
-go run testConnection.go
-```
-
-Output yang diharapkan:
-```
-Testing Database Connections...
-
-Testing Cassandra Connection...
-   	SUCCESS: Connected to Cassandra
-	WARNING: Keyspace 'rumahsakit' belum dibuat
-   	Jalankan: go run initSchema.go
-
-Testing Neo4j Connection...
-	SUCCESS: Connected to Neo4j
-	Response: Connection OK
-	WARNING: No constraints found
-	Jalankan: go run initSchema.go
-
-✅ All tests completed!
-```
-
-Jika ada error di tahap ini, lihat section [Troubleshooting](#-troubleshooting).
 
 ### 3. Inisialisasi Schema Database
 
