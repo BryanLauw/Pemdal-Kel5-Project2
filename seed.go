@@ -175,6 +175,8 @@ func generateObatData() []map[string]interface{} {
 
 func seedCassandra(obatData, rsData, layananData []map[string]interface{}, bayminData []map[string]interface{}) {
 	fmt.Println("\nSeeding Cassandra tables...")
+	// reuse a single "now" timestamp for inserted sample rows
+	now := time.Now()
 
 	// --- MASTER OBAT ---
 	for _, data := range obatData {
@@ -184,10 +186,23 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 		}
 	}
 
+	// --- PEMESANAN LAYANAN ---
+	for i := 1; i <= 10000; i++ {
+		plID := fmt.Sprintf("PL%06d", i)
+		emailPemesan := faker.Email()
+		waktuPemesanan := now.Add(time.Duration(rand.Intn(1000)) * time.Hour)
+		jadwalPelaksanaan := waktuPemesanan.Add(time.Duration(rand.Intn(72)) * time.Hour) // up to 3 days after pemesanan
+		status := randomStatusPemesanan()
+		if err := cassandra.InsertCassandra(`INSERT INTO rumahsakit.pemesanan_layanan (id_pesanan, email_pemesan, waktu_pemesanan, jadwal_pelaksanaan, status_pemesanan) VALUES (?, ?, ?, ?, ?)`,
+			plID, emailPemesan, waktuPemesanan, jadwalPelaksanaan, status); err != nil {
+			log.Printf("Error inserting pemesanan_layanan %s: %v", plID, err)
+		}
+	}
+
 	// --- PELAKSANAAN LAYANAN MEDIS (lokasi_layanan) ---
 	numServicesToOffer := rand.Intn(6) + 5 // 5 to 10 services per RS
 
-	// Gunakan map untuk memastikan tidak ada duplikasi RS-Layanan yang dimasukkan ke Cassandra
+	// map untuk memastikan tidak ada duplikasi RS-Layanan yang dimasukkan ke Cassandra
 	seededLocations := make(map[string]bool)
 
 	for _, rs := range rsData {
@@ -214,7 +229,6 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 	}
 
 	// --- Data Transaksional Dummy ---
-	now := time.Now()
 	for i := 1; i <= 10000; i++ {
 		// LOG AKTIVITAS (dari Baymin ID random)
 		if len(bayminData) > 0 {

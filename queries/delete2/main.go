@@ -1,4 +1,6 @@
+// =============================================================
 // Query: Hapus semua log aktivitas Baymin yang lebih tua dari 6 bulan.
+// =============================================================
 
 package main
 
