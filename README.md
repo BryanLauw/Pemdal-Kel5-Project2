@@ -10,7 +10,6 @@ Proyek ini adalah sistem informasi rumah sakit yang menggunakan **hybrid databas
 - [Setup & Konfigurasi](#-setup--konfigurasi)
 - [Cara Menjalankan](#-cara-menjalankan)
 - [Cara Membuat Query Baru](#-cara-membuat-query-baru)
-- [Benchmark Queries](#-benchmark-queries)
 - [Struktur Database](#-struktur-database)
 - [Troubleshooting](#-troubleshooting)
 
@@ -455,7 +454,7 @@ docker exec -it cassandra nodetool status
 
 ---
 
-## 📚 Referensi
+## Referensi
 
 - [Cassandra CQL Documentation](https://cassandra.apache.org/doc/latest/cql/)
 - [Neo4j Cypher Manual](https://neo4j.com/docs/cypher-manual/current/)
