@@ -346,10 +346,13 @@ func seedNeo4j(pasienData, tenagaMedisData, rsData, departemenData, layananMedis
 		rs := rsData[rand.Intn(len(rsData))]
 
 		// Create JanjiTemu
+		offsetDays := rand.Intn(730) - 365 // 0..729 → -365..+364
+		waktuPelaksanaan := time.Now().Add(time.Duration(offsetDays*24) * time.Hour)
+
 		jtID := fmt.Sprintf("JT%05d", i)
 		janjiTemuData := map[string]interface{}{
 			"id_janji_temu":     jtID,
-			"waktu_pelaksanaan": time.Now().Add(time.Duration(rand.Intn(30)*24) * time.Hour).Format("2006-01-02 15:04:05"),
+			"waktu_pelaksanaan": waktuPelaksanaan.Format("2006-01-02 15:04:05"),
 			"alasan":            faker.Sentence(),
 			"status":            randomStatusPemesanan(),
 		}
