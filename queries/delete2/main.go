@@ -20,9 +20,9 @@ func main() {
 	cassandra.InitCassandra()
 	defer cassandra.Close()
 
-	fmt.Println("=== Sebelum Hapus ===")
+	fmt.Println("=== Sebelum Delete ===")
 	before, _ := getLogAktivitasLama()
-	fmt.Printf("Jumlah sebelum: %d\n", len(before))
+	fmt.Printf("Jumlah row sebelum dihapus: %d\n", len(before))
 
 	start := time.Now()
 	err := HapusLogAktivitasLama()
@@ -30,11 +30,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Gagal hapus log lama: %v", err)
 	}
-	fmt.Printf("Log lama dihapus (%.2f ms)\n", float64(duration.Milliseconds()))
+	fmt.Printf("\nLog lama dihapus (%.2f ms)\n\n", float64(duration.Milliseconds()))
 
-	fmt.Println("=== Setelah Hapus ===")
+	fmt.Println("=== Setelah Delete ===")
 	after, _ := getLogAktivitasLama()
-	fmt.Printf("Jumlah setelah: %d\n", len(after))
+	fmt.Printf("Jumlah row setelah dihapus: %d\n", len(after))
 }
 
 func getLogAktivitasLama() ([]LogAktivitas, error) {

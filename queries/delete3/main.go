@@ -15,13 +15,8 @@ func main() {
 	defer neo4j.CloseNeo4j()
 
 	fmt.Println("=== Sebelum Delete ===")
-	before, _ := neo4j.ReadNeo4j(`
-		MATCH (j:JanjiTemu)
-		WHERE datetime(replace(j.waktu_pelaksanaan, ' ', 'T')) < datetime() - duration('P30D')
-			  AND NOT (j)-[:MENGHASILKAN_RESEP]->(:Resep)
-		RETURN j.id_janji_temu AS id, j.waktu_pelaksanaan AS waktu
-	`, nil)
-	fmt.Printf("Jumlah sebelum: %d\n", len(before))
+	before, _ := getJanjiTemuLama()
+	fmt.Printf("Jumlah row sebelum dihapus: %d\n", len(before))
 
 	start := time.Now()
 	err := HapusJanjiTemuLama()
@@ -29,16 +24,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("Gagal hapus janji temu lama: %v", err)
 	}
-	fmt.Printf("Janji temu lama dihapus (%.2f ms)\n", float64(duration.Milliseconds()))
+	fmt.Printf("\nJanji temu lama dihapus (%.2f ms)\n\n", float64(duration.Milliseconds()))
 
 	fmt.Println("=== Setelah Delete ===")
-	after, _ := neo4j.ReadNeo4j(`
+	after, _ := getJanjiTemuLama()
+	fmt.Printf("Jumlah row setelah dihapus: %d\n", len(after))
+}
+
+func getJanjiTemuLama() ([]map[string]interface{}, error) {
+	return neo4j.ReadNeo4j(`
 		MATCH (j:JanjiTemu)
 		WHERE datetime(replace(j.waktu_pelaksanaan, ' ', 'T')) < datetime() - duration('P30D')
 			  AND NOT (j)-[:MENGHASILKAN_RESEP]->(:Resep)
 		RETURN j.id_janji_temu AS id, j.waktu_pelaksanaan AS waktu
 	`, nil)
-	fmt.Printf("Jumlah setelah: %d\n", len(after))
 }
 
 func HapusJanjiTemuLama() error {

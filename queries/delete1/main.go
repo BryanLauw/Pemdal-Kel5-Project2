@@ -21,7 +21,7 @@ func main() {
 
 	fmt.Println("=== Sebelum Delete ===")
 	before, _ := getPemesananObatDibatalkan()
-	fmt.Printf("Jumlah sebelum: %d\n", len(before))
+	fmt.Printf("Jumlah row sebelum dihapus: %d\n", len(before))
 
 	start := time.Now()
 	err := HapusPemesananObatDibatalkan()
@@ -30,11 +30,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Gagal hapus pesanan dibatalkan: %v", err)
 	}
-	fmt.Printf("Hapus selesai (%.2f ms)\n", float64(duration.Milliseconds()))
+	fmt.Printf("\nHapus selesai (%.2f ms)\n\n", float64(duration.Milliseconds()))
 
 	fmt.Println("=== Setelah Delete ===")
 	after, _ := getPemesananObatDibatalkan()
-	fmt.Printf("Jumlah setelah: %d\n", len(after))
+	fmt.Printf("Jumlah row setelah dihapus: %d\n", len(after))
 }
 
 func getPemesananObatDibatalkan() ([]PemesananObat, error) {
