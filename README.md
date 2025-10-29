@@ -1,10 +1,10 @@
-# 🏥 Pemdal-Kel5-Project2 - Sistem Informasi Rumah Sakit
+# Pemdal-Kel5-Project2 - Sistem Informasi Rumah Sakit
 
 Proyek ini adalah sistem informasi rumah sakit yang menggunakan **hybrid database** dengan **Cassandra** (untuk data transaksional dan time-series) dan **Neo4j** (untuk data relasional).
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 - [Requirements](#-requirements)
 - [Instalasi](#-instalasi)
 - [Setup & Konfigurasi](#-setup--konfigurasi)
@@ -16,7 +16,7 @@ Proyek ini adalah sistem informasi rumah sakit yang menggunakan **hybrid databas
 
 ---
 
-## 🛠 Requirements
+## Requirements
 
 Pastikan sistem kamu sudah terinstall:
 - **Go** 1.25.3 atau lebih baru ([Download Go](https://go.dev/dl/))
@@ -25,7 +25,7 @@ Pastikan sistem kamu sudah terinstall:
 
 ---
 
-## 📦 Instalasi
+## Instalasi
 
 ### 1. Clone Repository
 ```powershell
@@ -45,7 +45,7 @@ Ini akan menginstall dependencies:
 
 ---
 
-## ⚙️ Setup & Konfigurasi
+## Setup & Konfigurasi
 
 ### 1. Jalankan Docker Containers
 
@@ -65,7 +65,7 @@ Pastikan kedua service sudah `running`.
 
 ### 2. Verifikasi Koneksi Database
 
-⏳ **PENTING:** Tunggu 2-3 menit setelah `docker-compose up -d` agar Cassandra fully initialized!
+**PENTING:** Tunggu 2-3 menit setelah `docker-compose up -d` agar Cassandra fully initialized!
 
 **Cek Status Container:**
 ```powershell
@@ -116,18 +116,18 @@ go run testConnection.go
 
 Output yang diharapkan:
 ```
-🔍 Testing Database Connections...
+Testing Database Connections...
 
-1️⃣ Testing Cassandra Connection...
-   ✅ SUCCESS: Connected to Cassandra
-   ⚠️  WARNING: Keyspace 'rumahsakit' belum dibuat
-   💡 Jalankan: go run initSchema.go
+Testing Cassandra Connection...
+   	SUCCESS: Connected to Cassandra
+	WARNING: Keyspace 'rumahsakit' belum dibuat
+   	Jalankan: go run initSchema.go
 
-2️⃣ Testing Neo4j Connection...
-   ✅ SUCCESS: Connected to Neo4j
-   📡 Response: Connection OK
-   ⚠️  WARNING: No constraints found
-   💡 Jalankan: go run initSchema.go
+Testing Neo4j Connection...
+	SUCCESS: Connected to Neo4j
+	Response: Connection OK
+	WARNING: No constraints found
+	Jalankan: go run initSchema.go
 
 ✅ All tests completed!
 ```
@@ -136,7 +136,7 @@ Jika ada error di tahap ini, lihat section [Troubleshooting](#-troubleshooting).
 
 ### 3. Inisialisasi Schema Database
 
-⚠️ **Pastikan Cassandra sudah fully ready sebelum jalankan script ini!**
+**Pastikan Cassandra sudah fully ready sebelum jalankan script ini!**
 
 Jalankan script untuk membuat keyspace, tables, dan constraints:
 
@@ -146,11 +146,11 @@ go run initSchema.go
 
 Output yang diharapkan:
 ```
-📦 Creating Cassandra keyspace and tables (denormalized model)...
-🧱 Keyspace 'rumahsakit' ready.
-✅ Cassandra denormalized schema created successfully.
-🧱 Creating Neo4j constraints and relationships...
-✅ Neo4j constraints created successfully.
+Creating Cassandra keyspace and tables (denormalized model)...
+Keyspace 'rumahsakit' ready.
+Cassandra denormalized schema created successfully.
+Creating Neo4j constraints and relationships...
+Neo4j constraints created successfully.
 ```
 
 ### 4. Seed Data (Optional)
@@ -161,11 +161,11 @@ Untuk mengisi database dengan data dummy (1000 pasien, 500 tenaga medis, dll):
 go run seed.go
 ```
 
-⚠️ **Warning:** Proses seeding bisa memakan waktu 5-15 menit tergantung spesifikasi komputer.
+**Warning:** Proses seeding bisa memakan waktu 5-15 menit tergantung spesifikasi komputer.
 
 ---
 
-## 🚀 Cara Menjalankan
+## Cara Menjalankan
 
 Setelah setup selesai, kamu bisa:
 
@@ -175,7 +175,7 @@ Setelah setup selesai, kamu bisa:
 
 ---
 
-## 📝 Cara Membuat Query Baru
+## Cara Membuat Query Baru
 
 ### Contoh: Menambahkan User Baru ke Database
 
@@ -227,10 +227,10 @@ func main() {
 	// Eksekusi query
 	err := neo4j.CreateNeo4j(query, pasienData)
 	if err != nil {
-		log.Fatalf("❌ Gagal menambahkan pasien: %v", err)
+		log.Fatalf("Gagal menambahkan pasien: %v", err)
 	}
 
-	fmt.Println("✅ Pasien berhasil ditambahkan!")
+	fmt.Println("Pasien berhasil ditambahkan!")
 	fmt.Printf("   Email: %s\n", pasienData["email"])
 	fmt.Printf("   Nama: %s\n", pasienData["nama_lengkap"])
 }
@@ -277,10 +277,10 @@ func main() {
 	// Eksekusi query
 	err := cassandra.InsertCassandra(query, idObat, nama, label, harga, stok)
 	if err != nil {
-		log.Fatalf("❌ Gagal menambahkan obat: %v", err)
+		log.Fatalf("Gagal menambahkan obat: %v", err)
 	}
 
-	fmt.Println("✅ Obat berhasil ditambahkan!")
+	fmt.Println("Obat berhasil ditambahkan!")
 	fmt.Printf("   ID: %s\n", idObat)
 	fmt.Printf("   Nama: %s\n", nama)
 	fmt.Printf("   Harga: Rp %.0f\n", harga)
@@ -321,10 +321,10 @@ func main() {
 
 	results, err := neo4j.ReadNeo4j(query, nil)
 	if err != nil {
-		log.Fatalf("❌ Query gagal: %v", err)
+		log.Fatalf("Query gagal: %v", err)
 	}
 
-	fmt.Println("\n📋 Daftar Pasien:")
+	fmt.Println("\nDaftar Pasien:")
 	fmt.Println("=====================================")
 	for i, record := range results {
 		fmt.Printf("%d. %s - %s (%s)\n",
@@ -344,7 +344,7 @@ go run queries/getPasien.go
 
 ---
 
-### 📁 Template Query Lainnya
+### Template Query Lainnya
 
 Untuk query yang lebih kompleks, kamu bisa:
 
@@ -385,86 +385,9 @@ params := map[string]interface{}{"id_rs": "RS001"}
 results, _ := neo4j.ReadNeo4j(query, params)
 ```
 
----
+## Troubleshooting
 
-## ⚡ Benchmark Queries
-
-Folder `queries/` juga berisi benchmark queries untuk membandingkan performa Neo4j vs Cassandra vs SQL tradisional.
-
-### Quick Start Benchmark
-
-```powershell
-# Jalankan semua benchmark secara interaktif
-go run queries/run_all_benchmarks.go
-
-# Atau jalankan individual benchmark
-go run queries/benchmark_insert_user.go
-go run queries/benchmark_graph_find_doctors.go
-go run queries/benchmark_update_expired_orders.go
-```
-
-### Benchmark Queries Available
-
-1. **INSERT Operations** (4 queries)
-   - Insert user/pasien baru
-   - Find pasien by name
-   - Insert rumah sakit
-   - Insert departemen dengan relationship
-
-2. **UPDATE Operations** (1 query)
-   - Update status pesanan expired (Cassandra limitation demo)
-
-3. **Graph Advantage Query** (1 query)
-   - Find doctors by location & specialization
-   - Menunjukkan keunggulan Graph DB vs SQL JOINs
-   - Includes SQL equivalent comparison
-
-### Hasil yang Diharapkan
-
-| Query Type | Neo4j | Cassandra | SQL Equivalent |
-|------------|-------|-----------|----------------|
-| Simple Insert | ~5-20ms | - | ~3-10ms |
-| Insert + Relationship | ~10-30ms | - | ~5-15ms (2 queries) |
-| Graph Traversal (3 hops) | ~5-50ms | Not possible | ~50-500ms (JOINs) |
-| Time-based Update | - | ~100-500ms | ~10-50ms |
-
-**Lihat dokumentasi lengkap:** [queries/BENCHMARK.md](queries/BENCHMARK.md)
-
----
-
-## 🗄 Struktur Database
-
-### Cassandra (Denormalized - untuk Time-Series & Transactions)
-- `log_aktivitas` - Log aktivitas dari perangkat Baymin
-- `pemesanan_obat` - Transaksi pemesanan obat
-- `detail_pesanan_obat` - Detail obat yang dipesan
-- `obat` - Master data obat
-- `pemesanan_layanan` - Transaksi booking layanan medis
-- `lokasi_layanan` - Layanan yang tersedia di setiap rumah sakit
-
-### Neo4j (Relational Graph)
-**Nodes:**
-- `Pasien` - Data pasien
-- `TenagaMedis` - Dokter, perawat, dll
-- `RumahSakit` - Data rumah sakit
-- `Departemen` - Poli/departemen di RS
-- `LayananMedis` - Jenis layanan medis
-- `Baymin` - Perangkat monitoring kesehatan
-- `JanjiTemu` - Appointment pasien
-- `Resep` - Resep obat
-
-**Relationships:**
-- `Pasien -[:memiliki_perangkat]-> Baymin`
-- `TenagaMedis -[:bekerja_di]-> Departemen`
-- `RumahSakit -[:memiliki_departemen]-> Departemen`
-- `RumahSakit -[:menawarkan_layanan]-> LayananMedis`
-- Dan lain-lain...
-
----
-
-## 🔧 Troubleshooting
-
-### ❌ Error: "Connection refused" saat `docker exec -it cassandra cqlsh`
+### Error: "Connection refused" saat `docker exec -it cassandra cqlsh`
 
 **Penyebab:** Cassandra masih initializing (butuh 2-3 menit pertama kali dijalankan)
 
@@ -499,7 +422,7 @@ docker-compose restart cassandra
 # Tunggu 2-3 menit, lalu coba lagi
 ```
 
-### ❌ Error: "Could not reach Neo4j" di Browser
+### Error: "Could not reach Neo4j" di Browser
 
 **Penyebab:** URL connection salah atau Neo4j belum ready
 
@@ -512,9 +435,9 @@ docker ps | findstr neo4j
 docker logs neo4j --tail 20
 
 # 3. Di browser Neo4j, gunakan URL yang BENAR:
-# ✅ BENAR: bolt://localhost:7687
-# ❌ SALAH: http://localhost:7687
-# ❌ SALAH: localhost:7474
+# 		BENAR: bolt://localhost:7687
+# 		SALAH: http://localhost:7687
+# 		SALAH: localhost:7474
 
 # 4. Credentials:
 # Username: neo4j
@@ -568,12 +491,8 @@ docker exec -it cassandra nodetool status
 
 ---
 
-## 👥 Contributors
+## Contributors
 
 **Kelompok 5 - Pemdal Project 2**
 
 ---
-
-## 📄 License
-
-MIT License - Feel free to use this project for learning purposes.
