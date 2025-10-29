@@ -234,8 +234,21 @@ func seedCassandra(obatData, rsData, layananData []map[string]interface{}, baymi
 			}
 			emailPemesan := faker.Email()
 
+			// Generate waktu pemesanan: sebagian masa lalu (untuk testing update1), sebagian masa depan
+			// 70% masa lalu (0-30 hari yang lalu), 30% masa depan
+			var waktuPemesanan time.Time
+			if rand.Float32() < 0.7 {
+				// Masa lalu: 0-30 hari yang lalu
+				daysAgo := rand.Intn(30)
+				waktuPemesanan = now.Add(-time.Duration(daysAgo*24) * time.Hour)
+			} else {
+				// Masa depan: 0-7 hari ke depan
+				daysAhead := rand.Intn(7)
+				waktuPemesanan = now.Add(time.Duration(daysAhead*24) * time.Hour)
+			}
+
 			cassandra.InsertCassandra(`INSERT INTO rumahsakit.pemesanan_obat (id_pesanan, email_pemesan, waktu_pemesanan, status_pemesanan) VALUES (?, ?, ?, ?)`,
-				poID, emailPemesan, now.Add(time.Duration(i)*time.Hour), randomStatusPemesanan())
+				poID, emailPemesan, waktuPemesanan, randomStatusPemesanan())
 
 			cassandra.InsertCassandra(`INSERT INTO rumahsakit.detail_pesanan_obat (id_pesanan, daftar_obat) VALUES (?, ?)`, poID, obatMap)
 		}
