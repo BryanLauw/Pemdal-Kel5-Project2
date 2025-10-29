@@ -3,23 +3,16 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"src/neo4j"
 )
 
-// ===============================================
-// DATA STRUCTURE
-// ===============================================
-
 type LayananStats struct {
 	NamaLayanan   string
 	JumlahPesanan int
 }
-
-// ===============================================
-// QUERY NEO4J
-// ===============================================
 
 func getMostOrderedServices() ([]LayananStats, error) {
 	// Count appointments at hospitals that offer each service
@@ -48,13 +41,12 @@ func getMostOrderedServices() ([]LayananStats, error) {
 	return services, nil
 }
 
-// ===============================================
-// DISPLAY FUNCTION
-// ===============================================
-
 func displayServices(services []LayananStats, limit int) {
+	fmt.Println("\n" + strings.Repeat("=", 70))
 	fmt.Println("     LAYANAN MEDIS YANG PALING SERING DIPESAN")
+	fmt.Println(strings.Repeat("=", 70))
 	fmt.Printf("%-5s %-45s %s\n", "No", "Nama Layanan", "Jumlah Pesanan")
+	fmt.Println(strings.Repeat("-", 70))
 
 	if len(services) == 0 {
 		fmt.Println("Tidak ada data layanan medis.")
@@ -71,6 +63,7 @@ func displayServices(services []LayananStats, limit int) {
 		fmt.Printf("%-5d %-45s %d\n", i+1, truncateString(s.NamaLayanan, 45), s.JumlahPesanan)
 	}
 
+	fmt.Println(strings.Repeat("=", 70) + "\n")
 }
 
 func truncateString(s string, maxLen int) string {
@@ -80,18 +73,12 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// ===============================================
-// MAIN FUNCTION
-// ===============================================
-
 func main() {
 	// Initialize Neo4j connection
-	fmt.Println("Initializing Neo4j connection...")
 	neo4j.InitNeo4j()
 	defer neo4j.CloseNeo4j()
 
-	// Execute query
-	fmt.Println("\nFetching service statistics...")
+	// Fetch query
 	start := time.Now()
 	services, err := getMostOrderedServices()
 	elapsed := time.Since(start)
@@ -100,7 +87,8 @@ func main() {
 	}
 
 	// Display results
-	displayServices(services, 5)
+	displayServices(services, 10)
 
+	// Timing summary
 	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())
 }

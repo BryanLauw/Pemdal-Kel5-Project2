@@ -9,18 +9,10 @@ import (
 	"src/neo4j"
 )
 
-// ===============================================
-// DATA STRUCTURE
-// ===============================================
-
 type RumahSakitStats struct {
 	NamaRumahSakit    string
 	JumlahTenagaMedis int
 }
-
-// ===============================================
-// QUERY NEO4J
-// ===============================================
 
 func getHospitalsByMedicalStaff() ([]RumahSakitStats, error) {
 	// Count medical staff per hospital through departments
@@ -30,7 +22,6 @@ func getHospitalsByMedicalStaff() ([]RumahSakitStats, error) {
 		RETURN rs.nama_rumah_sakit AS nama_rumah_sakit,
 		       jumlah_tenaga_medis
 		ORDER BY jumlah_tenaga_medis DESC
-		LIMIT 10
 	`
 
 	results, err := neo4j.ReadNeo4j(query, nil)
@@ -50,11 +41,7 @@ func getHospitalsByMedicalStaff() ([]RumahSakitStats, error) {
 	return hospitals, nil
 }
 
-// ===============================================
-// DISPLAY FUNCTION
-// ===============================================
-
-func displayHospitals(hospitals []RumahSakitStats) {
+func displayHospitals(hospitals []RumahSakitStats, limit int) {
 	fmt.Println("\n" + strings.Repeat("=", 70))
 	fmt.Println("     RUMAH SAKIT DENGAN JUMLAH TENAGA MEDIS TERBANYAK")
 	fmt.Println(strings.Repeat("=", 70))
@@ -66,7 +53,13 @@ func displayHospitals(hospitals []RumahSakitStats) {
 		return
 	}
 
-	for i, h := range hospitals {
+	displayLimit := limit
+	if displayLimit > len(hospitals) {
+		displayLimit = len(hospitals)
+	}
+
+	for i := 0; i < displayLimit; i++ {
+		h := hospitals[i]
 		fmt.Printf("%-5d %-45s %d\n", i+1, truncateString(h.NamaRumahSakit, 45), h.JumlahTenagaMedis)
 	}
 
@@ -80,13 +73,8 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// ===============================================
-// MAIN FUNCTION
-// ===============================================
-
 func main() {
 	// Initialize Neo4j connection
-	fmt.Println("Initializing Neo4j connection...")
 	neo4j.InitNeo4j()
 	defer neo4j.CloseNeo4j()
 
@@ -101,7 +89,7 @@ func main() {
 	}
 
 	// Display results
-	displayHospitals(hospitals)
+	displayHospitals(hospitals, 10)
 
 	// Timing summary
 	fmt.Printf("\nTime: %.3f seconds (%d ms)\n", elapsed.Seconds(), elapsed.Milliseconds())
